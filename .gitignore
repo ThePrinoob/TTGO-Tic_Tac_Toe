@@ -1,1 +1,5 @@
+# Exclude Visual Studio Code folder
 .vscode
+
+# Exclude build folder
+.build
