@@ -5,36 +5,37 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke custom library
 #include "cross.h"         // Import cross picture
 #include "circle.h"        // Import circle picture
 
-#define TFT_GREY 0x5AEB
-#define lightblue 0x2D18
-#define orange 0xFB60
-#define purple 0xFB9B
 #define post_yellow 0xFE60
-
 #define BLACK   0x0000
-#define BLUE    0x001F
-#define RED     0xF800
-#define GREEN   0x07E0
-#define CYAN    0x07FF
-#define MAGENTA 0xF81F
-#define YELLOW  0xFFE0
-#define WHITE   0xFFFF
+
+int scene = 0;
 
 // Positions from left to right top to bottom
 int positionsXY[9][2] = { 
     {15, 50},
-    {15, 110},
-    {15, 170},
     {55, 50},
+    {100, 50},
+    {15, 110},
     {55, 110},
+    {100, 110},
+    {15, 170},
     {55, 170},
-    {95, 50},
-    {95, 110},
-    {95, 170}
+    {100, 170}
 };
 
-int position = 15;
-int positionsSet[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+int position = -1;
+
+                    //  x | x | x
+                    //  ---------
+                    //  o | o | o
+                    //  ---------
+                    //  x | x | x
+int positionsSet[] = {  0, 0, 0,
+                        0, 0, 0,
+                        0, 0, 0
+                    };
+
+int quantity = sizeof(positionsXY) / sizeof (positionsXY[0]);
 
 // length of the quadrat in which the x is placed
 int lengthX = 25;
@@ -43,9 +44,11 @@ int player = 1;
 
 void setup(void)
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
+    
     pinMode(0, INPUT);
     pinMode(35, INPUT);
+
     tft.init();
     tft.setRotation(0);
 
@@ -93,50 +96,106 @@ void loop()
 {
     if (digitalRead(0) == 0) { // button left
         Serial.println("Left Button");
-        position = 15;
+
+        // set the move of the player
+        positionsSet[position] = player;
+
+        // When all moves are made go to next scene
+        for ( int i = 0; i < quantity; ++i ) {
+            if (positionsSet[i] == 0) {
+                break;
+            } else {
+                if (i == quantity) {
+                    scene++;
+                    nextScene(scene);
+                }
+            }
+        }
+        // reset the position
+        position = -1;
+
+        // change the player
         if (player == 1) {
             player = 2;
         } else {
             player = 1;
         }
-        delay(1000);
+
+        determinePosition();
+
+        drawPlayer();
+
+        delay(250);
     }
+
     if (digitalRead(35) == 0) { // button right
         Serial.println(position);
         Serial.println(player);
-        // for ( int i = 0; i < sizeof(positionsSet); ++i ) {
-        //     if (positionsSet[i] == 1) {
-        //         position = i;
-        //     }
-        // }
-        if (position == 15) {
-            for ( int i = 0; i < sizeof(positionsXY) / sizeof (positionsXY[0]); ++i ) {
-                Serial.println(i);
-                if (positionsSet[i] == 0) {
-                    Serial.println("hi");
-                    Serial.println(i);
-                    position = i;
-                    break;
-                }
-            }
-        } else {
-            Serial.println("hi");
-            position++;
-            // tft.drawRect(, , lengthX, lengthX, post_yellow);
-        }
-        if (player == 1) {
-            Serial.println("player 1");
-            drawX(positionsXY[position][0], positionsXY[position][1], lengthX, BLACK);
-        } else {
-            Serial.println("player 2");
-            tft.drawCircle(positionsXY[position][0], positionsXY[position][1], 16, BLACK);
-        }
-        delay(1000);
+
+        buttonRight();
+
+        delay(250);
     }
 }
 
-int drawX(int x, int y, int l, uint32_t color){
+void buttonRight() {
+    
+    position++;
+    determinePosition();
+
+    // draw empty space - could be solved better
+    for ( int i = 0; i < sizeof(positionsXY) / sizeof (positionsXY[0]); ++i ) {
+        if (positionsSet[i] == 0) {
+            tft.fillRect(positionsXY[i][0] - 8, positionsXY[i][1] - 5, lengthX + 12, lengthX + 10, post_yellow);
+        }
+    }
+
+    drawPlayer();
+}
+
+void determinePosition() {
+    // change the position only if its not out of range
+    if (position < quantity) {
+        // check if the place is already taken.
+        for (int i = 0; i < quantity; i++) {
+            if (positionsSet[position] != 0) {
+                position++;
+                determinePosition();
+            }
+            else {
+                break;
+            }
+        }
+    } else {
+        position = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (positionsSet[position] != 0) {
+                position++;
+            }
+            else {
+                break;
+            }
+        }
+    }
+}
+
+void drawPlayer() {
+    if (player == 1) {
+        Serial.println("player 1");
+        drawX(positionsXY[position][0], positionsXY[position][1], lengthX, BLACK);
+    } else {
+        Serial.println("player 2");
+        tft.drawCircle(positionsXY[position][0] + 12, positionsXY[position][1] + 10, 14, BLACK);
+    }
+}
+
+// Draws a X with the given coordinates and color
+void drawX(int x, int y, int l, uint32_t color){
     tft.drawLine(x, y, x+l, y+l, color);
     tft.drawLine(x, y+l, x+l, y, color);
-    return 0;
+}
+
+// TBD
+void nextScene(int sceneNumber) {
+    tft.fillScreen(BLACK);
 }
