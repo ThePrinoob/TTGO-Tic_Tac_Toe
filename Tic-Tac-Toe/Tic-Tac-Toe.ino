@@ -26,7 +26,7 @@ int positionsXY[9][2] = {
 };
 
 // current position
-int position = -1;
+int position = 0;
 
                     //  x | x | x
                     //  ---------
@@ -45,6 +45,13 @@ int lengthX = 25;
 
 // current player
 int player = 1;
+
+// blinking state of player - 0 hidden, 1 shown
+int blink = 0;
+
+unsigned long startMillis;
+unsigned long currentMillis;
+const unsigned long period = 500; //the value is a number of milliseconds used for the blinking player
 
 void setup(void)
 {
@@ -80,12 +87,15 @@ void setup(void)
     tft.drawLine(45, 30, 45, 210, BLACK); // first line
     tft.drawLine(90, 30, 90, 210, BLACK); // second line
 
+    startMillis = millis();  //initial start time
 }
 
 void loop()
 {
     if (digitalRead(0) == 0) { // button left
         Serial.println("Left Button");
+
+        drawPlayer();
 
         // set the move of the player
         positionsSet[position] = player;
@@ -104,7 +114,7 @@ void loop()
         }
 
         // reset the position
-        position = -1;
+        position = 0;
 
         // change the player
         if (player == 1) {
@@ -114,8 +124,10 @@ void loop()
         }
 
         determinePosition();
-
+        
         drawPlayer();
+        
+        drawEmptySpace();
 
         delay(250);
     }
@@ -128,16 +140,35 @@ void loop()
 
         determinePosition();
 
-        // draw empty space
-        for ( int i = 0; i < sizeof(positionsXY) / sizeof (positionsXY[0]); ++i ) {
-            if (positionsSet[i] == 0) {
-                tft.fillRect(positionsXY[i][0] - 8, positionsXY[i][1] - 5, lengthX + 12, lengthX + 10, post_yellow);
-            }
-        }
+        drawEmptySpace();
 
         drawPlayer();
 
         delay(250);
+    }
+
+    currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
+
+    if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+    {
+        if (blink == 0) {
+            drawEmptySpace();
+            blink = 1;
+        } else {
+            determinePosition();
+            drawPlayer();
+            blink = 0;
+        }
+        startMillis = currentMillis;  // save the start time of the current state.
+    }
+}
+
+void drawEmptySpace() {
+    // draw empty space
+    for ( int i = 0; i < sizeof(positionsXY) / sizeof (positionsXY[0]); ++i ) {
+        if (positionsSet[i] == 0) {
+            tft.fillRect(positionsXY[i][0] - 8, positionsXY[i][1] - 5, lengthX + 12, lengthX + 10, post_yellow);
+        }
     }
 }
 
