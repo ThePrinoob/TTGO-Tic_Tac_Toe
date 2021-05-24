@@ -70,12 +70,6 @@ void setup(void)
 
     // tft.pushImage(0, 0, 135, 240, bootlogo);
 
-    // tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    // tft.setTextSize(0.1);
-
-    // tft.setCursor(0, 0, 2);
-    // tft.println("Warum liegt hier stroh");
-
     // Draw yellow screen
     tft.fillScreen(post_yellow);
 
@@ -86,6 +80,13 @@ void setup(void)
     // draw vertical lines |
     tft.drawLine(45, 30, 45, 210, BLACK); // first line
     tft.drawLine(90, 30, 90, 210, BLACK); // second line
+
+    // Set color, text size and print the current player
+    // Text color needs BG, else it doesn't display the number correctly.
+    tft.setTextColor(BLACK, post_yellow);
+    tft.setTextSize(1);
+    tft.setCursor(5, 2, 2);
+    tft.println("Spieler: " + String(player));
 
     startMillis = millis();  //initial start time
 }
@@ -122,6 +123,9 @@ void loop()
         } else {
             player = 1;
         }
+
+        tft.setCursor(5, 2, 2);
+        tft.println("Spieler: " + String(player));
 
         determinePosition();
         
