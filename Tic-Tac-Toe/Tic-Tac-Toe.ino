@@ -8,7 +8,10 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke custom library
 // Colors
 #define post_yellow 0xFE60
 #define BLACK   0x0000
+#define BLUE   0x001F
+#define RED 0xF800
 
+int win = 0;
 // Scene
 int scene = 0;
 
@@ -52,6 +55,7 @@ int blink = 0;
 unsigned long startMillis;
 unsigned long currentMillis;
 const unsigned long period = 500; //the value is a number of milliseconds used for the blinking player
+int fase = 1;
 
 void setup(void)
 {
@@ -86,13 +90,23 @@ void setup(void)
     tft.setTextColor(BLACK, post_yellow);
     tft.setTextSize(1);
     tft.setCursor(5, 2, 2);
-    tft.println("Spieler: " + String(player));
+    //tft.println("Spieler: " + String(player));
 
     startMillis = millis();  //initial start time
+ 
 }
 
 void loop()
-{
+{ 
+
+  //start screen
+  if (fase == 0){
+    delay(1000);
+    tft.fillScreen(0x0000);
+  }
+  
+  //game screen 
+  else if(fase == 1) {
     if (digitalRead(0) == 0) { // button left
         Serial.println("Left Button");
 
@@ -103,17 +117,23 @@ void loop()
 
         // When all moves are made go to next scene
         // Will be replaced, because it needs to be checked if a player already won.
-        for ( int i = 0; i < quantity; ++i ) {
-            if (positionsSet[i] == 0) {
+        for ( int i = 0; i < 9; ++i ) {
+            if (positionsSet[0] == 1) {
+                fase = 2;
+                win = 1;
                 break;
-            } else {
+            } else if (positionsSet[0] == 2){
+                fase = 2;
+                win = 2;
+                break;
+              }
+            else {
                 if (i == quantity) {
                     scene++;
                     nextScene(scene);
                 }
             }
         }
-
         // reset the position
         position = 0;
 
@@ -153,17 +173,25 @@ void loop()
 
     currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
 
-    if (currentMillis - startMillis >= period)  //test whether the period has elapsed
-    {
-        if (blink == 0) {
-            drawEmptySpace();
-            blink = 1;
-        } else {
-            determinePosition();
-            drawPlayer();
-            blink = 0;
-        }
-        startMillis = currentMillis;  // save the start time of the current state.
+    if (fase == 1){
+      Serial.println("Hallo");
+      if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+      {
+          if (blink == 0) {
+              drawEmptySpace();
+              blink = 1;
+          } else {
+              determinePosition();
+              drawPlayer();
+              blink = 0;
+          }
+          startMillis = currentMillis;  // save the start time of the current state.
+      }
+    }
+  }
+  else if (fase == 2){
+    //to do
+      setEndScreen();
     }
 }
 
@@ -227,4 +255,12 @@ void drawX(int x, int y, int l, uint32_t color){
 // TBD
 void nextScene(int sceneNumber) {
     tft.fillScreen(BLACK);
+}
+
+void setEndScreen() {
+    if (win == 1) {
+        tft.fillScreen(BLUE);
+    }else if (win == 2){
+       tft.fillScreen(RED); 
+     }
 }
