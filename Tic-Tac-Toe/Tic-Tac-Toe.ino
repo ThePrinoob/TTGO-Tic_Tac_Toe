@@ -1,9 +1,6 @@
 #include <SPI.h>
 #include <TFT_eSPI.h>      // Hardware-specific library
 TFT_eSPI tft = TFT_eSPI(); // Invoke custom library
-#include "logo.h"          // Import custom picture
-#include "cross.h"         // Import cross picture
-#include "circle.h"        // Import circle picture
 
 // Colors
 #define post_yellow 0xFE60
@@ -30,15 +27,16 @@ int positionsXY[9][2] = {
 // current position
 int position = 0;
 
-//  x | x | x
-//  ---------
-//  o | o | o
-//  ---------
-//  x | x | x
+                //    x | x | x
+                //    ---------
+                //    o | o | o
+                //    ---------
+                //    x | x | x
 int positionsSet[] = {15, 15, 15,
                       15, 15, 15,
                       15, 15, 15};
 
+// number of fields
 int quantity = 8;
 
 // length of the quadrat in which the x is placed
@@ -56,6 +54,7 @@ unsigned int score;
 // blinking state of player - 0 hidden, 1 shown
 int blink = 0;
 
+// millis part of blinking player
 unsigned long startMillis;
 unsigned long currentMillis;
 const unsigned long period = 500; //the value is a number of milliseconds used for the blinking player
@@ -101,14 +100,14 @@ void setup(void)
 void loop()
 {
 
-    //start screen
+    //start screen - TODO
     if (fase == 0)
     {
         delay(1000);
         tft.fillScreen(0x0000);
     }
 
-    //game screen
+    // game screen
     else if (fase == 1)
     {
         if (digitalRead(0) == 0)
@@ -120,64 +119,38 @@ void loop()
             // set the move of the player
             positionsSet[position] = player;
 
+            // Check every possible move and set the winner
             score = positionsSet[0] + positionsSet[1] + positionsSet[2];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
             score = positionsSet[3] + positionsSet[4] + positionsSet[5];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
             score = positionsSet[6] + positionsSet[7] + positionsSet[8];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
             score = positionsSet[0] + positionsSet[3] + positionsSet[6];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
             score = positionsSet[1] + positionsSet[4] + positionsSet[7];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
             score = positionsSet[2] + positionsSet[5] + positionsSet[8];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
             score = positionsSet[0] + positionsSet[4] + positionsSet[8];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
             score = positionsSet[2] + positionsSet[4] + positionsSet[6];
-            if (score == 3 || score == 6)
-            {
-                winner = (score == 3) ? 1 : 2;
-            }
+            if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
 
+            // check if somebody won
             if (!winner)
             {
-                // When all moves are made go to next scene and display draw
-                // 
+                // When all moves are made go to next scene and display drawW
                 for (int i = 0; i <= quantity; ++i)
                 {
-                    if (positionsSet[i] == 15)
-                    {
-                        break;
-                    }
+                    if (positionsSet[i] == 15) { break; }
                     else
                     {
                         if (i == quantity)
@@ -204,6 +177,7 @@ void loop()
                     player = 1;
                 }
 
+                // Display current player
                 tft.setCursor(5, 2, 2);
                 tft.println("Spieler: " + String(player));
 
@@ -344,6 +318,7 @@ void nextScene(int sceneNumber)
     tft.fillScreen(BLACK);
 }
 
+// Set the end screen with the winner variabel.
 void setEndScreen()
 {
     if (winner == 1)
