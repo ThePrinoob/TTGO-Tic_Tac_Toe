@@ -33,18 +33,24 @@ int position = 0;
                     //  o | o | o
                     //  ---------
                     //  x | x | x
-int positionsSet[] = {  0, 0, 0,
-                        0, 0, 0,
-                        0, 0, 0
+int positionsSet[] = {  15, 15, 15,
+                        15, 15, 15,
+                        15, 15, 15
                     };
 
-int quantity = sizeof(positionsXY) / sizeof (positionsXY[0]);
+int quantity = 8;
 
 // length of the quadrat in which the x is placed
 int lengthX = 25;
 
 // current player
 int player = 1;
+
+// winner 
+unsigned int winner;
+
+// score
+unsigned int score;
 
 // blinking state of player - 0 hidden, 1 shown
 int blink = 0;
@@ -101,39 +107,70 @@ void loop()
         // set the move of the player
         positionsSet[position] = player;
 
-        // When all moves are made go to next scene
-        // Will be replaced, because it needs to be checked if a player already won.
-        for ( int i = 0; i < quantity; ++i ) {
-            if (positionsSet[i] == 0) {
-                break;
-            } else {
-                if (i == quantity) {
-                    scene++;
-                    nextScene(scene);
+        score = positionsSet[0] + positionsSet[1] + positionsSet[2];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+        
+        score = positionsSet[3] + positionsSet[4] + positionsSet[5];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+        
+        score = positionsSet[6] + positionsSet[7] + positionsSet[8];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+        
+        score = positionsSet[0] + positionsSet[3] + positionsSet[6];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+
+        score = positionsSet[1] + positionsSet[4] + positionsSet[7];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+
+        score = positionsSet[2] + positionsSet[5] + positionsSet[8];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+
+        score = positionsSet[0] + positionsSet[4] + positionsSet[8];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+
+        score = positionsSet[2] + positionsSet[4] + positionsSet[6];
+        if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
+
+        if (!winner) {
+            // When all moves are made go to next scene
+            // Will be replaced, because it needs to be checked if a player already won.
+            for ( int i = 0; i < quantity; ++i ) {
+                if (positionsSet[i] == 15) {
+                    break;
+                } else {
+                    if (i == quantity) {
+                        Serial.println(i);
+                        Serial.println(quantity);
+                        scene++;
+                        nextScene(scene);
+                    }
                 }
             }
-        }
 
-        // reset the position
-        position = 0;
+            // reset the position
+            position = 0;
 
-        // change the player
-        if (player == 1) {
-            player = 2;
+            // change the player
+            if (player == 1) {
+                player = 2;
+            } else {
+                player = 1;
+            }
+
+            tft.setCursor(5, 2, 2);
+            tft.println("Spieler: " + String(player));
+
+            determinePosition();
+            
+            drawPlayer();
+            
+            drawEmptySpace();
+
+            delay(250);
         } else {
-            player = 1;
+            scene++;
+            nextScene(scene);
         }
-
-        tft.setCursor(5, 2, 2);
-        tft.println("Spieler: " + String(player));
-
-        determinePosition();
-        
-        drawPlayer();
-        
-        drawEmptySpace();
-
-        delay(250);
     }
 
     if (digitalRead(35) == 0) { // button right
@@ -170,7 +207,7 @@ void loop()
 void drawEmptySpace() {
     // draw empty space
     for ( int i = 0; i < sizeof(positionsXY) / sizeof (positionsXY[0]); ++i ) {
-        if (positionsSet[i] == 0) {
+        if (positionsSet[i] == 15) {
             tft.fillRect(positionsXY[i][0] - 8, positionsXY[i][1] - 5, lengthX + 12, lengthX + 10, post_yellow);
         }
     }
@@ -184,7 +221,7 @@ void determinePosition() {
         // check if the place is already taken.
         for (int i = 0; i < quantity; i++) {
             // If the next field is also taken it starts the function again.
-            if (positionsSet[position] != 0) {
+            if (positionsSet[position] != 15) {
                 position++;
                 determinePosition();
             }
@@ -196,7 +233,7 @@ void determinePosition() {
         // if its out of range it sets the position to zero and searches the first possible move.
         position = 0;
         for (int i = 0; i < quantity; i++) {
-            if (positionsSet[position] != 0) {
+            if (positionsSet[position] != 15) {
                 position++;
             }
             else {
