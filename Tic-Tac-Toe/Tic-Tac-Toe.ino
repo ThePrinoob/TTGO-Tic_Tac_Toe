@@ -172,7 +172,7 @@ void loop()
             {
                 // When all moves are made go to next scene and display draw
                 // 
-                for (int i = 0; i < quantity; ++i)
+                for (int i = 0; i <= quantity; ++i)
                 {
                     if (positionsSet[i] == 15)
                     {
@@ -283,7 +283,7 @@ void determinePosition()
     if (position <= quantity)
     {
         // check if the place is already taken.
-        for (int i = 0; i < quantity; i++)
+        for (int i = 0; i <= quantity; i++)
         {
             // If the next field is also taken it starts the function again.
             if (positionsSet[position] != 15)
@@ -301,7 +301,7 @@ void determinePosition()
     {
         // if its out of range it sets the position to zero and searches the first possible move.
         position = 0;
-        for (int i = 0; i < quantity; i++)
+        for (int i = 0; i <= quantity; i++)
         {
             if (positionsSet[position] != 15)
             {
