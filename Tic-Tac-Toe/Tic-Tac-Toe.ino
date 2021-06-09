@@ -237,10 +237,13 @@ void loop()
                     drawPlayer();
                     blink = 0;
                 }
+            } else {
+                blink = 0;
             }
 
             startMillis = currentMillis; // save the start time of the current state.
         }
+
         if (isOnline) {
             if (!isServer && player == 1 || isServer && player == 2) {
                 return;
