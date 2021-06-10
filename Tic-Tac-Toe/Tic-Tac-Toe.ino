@@ -183,7 +183,7 @@ void loop()
     }
 
     // game screen
-    else if (fase == 1)
+    else if (fase == 1 && !winner)
     {
         currentMillis = millis(); //get the current "time" (actually the number of milliseconds since the program started)
 
@@ -214,7 +214,8 @@ void loop()
             if (isOnline) {
                 if (!isServer) {
                     player = httpGETRequest(serverGameGetPlayer).toInt();
-                    if (player == 2) {
+                    Serial.println(String(player));
+                    if (player > 1) {
                         convertToArray(httpGETRequest(serverGameGetPositions));
                         drawAllPlayers();
                     } else {
@@ -222,8 +223,6 @@ void loop()
                     }
                 }
             }
-
-            checkForWinner();
 
             if (!isServer && player == 2 || isServer && player == 1) {
                 if (blink == 0)
@@ -259,28 +258,15 @@ void loop()
             // set the move of the player
             positionsSet[position] = player;
 
-            checkForWinner();
+            checkForWinner(true);
 
             // check if somebody won
             if (!winner)
             {
-                // When all moves are made go to next scene and display drawW
-                for (int i = 0; i <= quantity; ++i)
-                {
-                    if (positionsSet[i] == 15) { break; }
-                    else
-                    {
-                        if (i == quantity)
-                        {
-                            Serial.println(i);
-                            Serial.println(quantity);
-                            player = (player == 1) ? 2 : 1;
-                            fase++;
-                            firstRun = true;
-                            winner = 3;
-                        }
-                    }
-                }
+                checkForDraw();
+                if(winner) { return; }
+            } else {
+                return;
             }
 
             // reset the position
@@ -327,23 +313,26 @@ void loop()
     else if (fase == 2)
     {
         if (firstRun) {
-            tft.fillScreen(TFT_BLACK);
-
             tft.setCursor(13, 103, 2);
 
-            tft.setTextColor(TFT_WHITE, TFT_BLACK);
             tft.setTextSize(1);
 
             if (winner == 1)
             {
+                tft.setTextColor(TFT_BLACK, TFT_GREEN);
+                tft.fillScreen(TFT_GREEN);
                 tft.println("WINNER X");
             }
             else if (winner == 2)
             {
+                tft.setTextColor(TFT_BLACK, TFT_RED);
+                tft.fillScreen(TFT_RED);
                 tft.println("WINNER O");
             }
             else if (winner == 3)
             {
+                tft.setTextColor(TFT_WHITE, TFT_BLACK);
+                tft.fillScreen(TFT_BLACK);
                 tft.println("DRAW");
             }
             firstRun = false;
@@ -456,13 +445,14 @@ void drawAllPlayers() {
         }
     }
     determinePosition();
-    checkForWinner();
+    checkForWinner(false);
+    checkForDraw();
     // Display current player
     tft.setCursor(5, 2, 2);
     tft.println("Spieler: " + String(player));
 }
 
-void checkForWinner() {
+void checkForWinner(bool buttonClicked) {
     // Check every possible move and set the winner
     score = positionsSet[0] + positionsSet[1] + positionsSet[2];
     if(score == 3 || score == 6) { winner = (score == 3) ? 1 : 2; }
@@ -491,8 +481,32 @@ void checkForWinner() {
     if (winner) {
         // Change the player for the last time so it can be grabt by the client.
         player = (player == 1) ? 2 : 1;
+        if (!isServer && isOnline && buttonClicked) {
+            httpPOSTRequest(serverGameSetPlayer, String(player));
+            String tmpPositionsSet = convertToString();
+            httpPOSTRequest(serverGameSetPositions, tmpPositionsSet);
+        }
         fase++;
         firstRun = true;
+    }
+}
+
+void checkForDraw() {
+    // When all moves are made go to next scene and display drawW
+    for (int i = 0; i <= quantity; ++i)
+    {
+        if (positionsSet[i] == 15) { break; }
+        else
+        {
+            if (i == quantity)
+            {
+                Serial.println(i);
+                Serial.println(quantity);
+                winner = 3;
+                checkForWinner(false);
+                return;
+            }
+        }
     }
 }
 
@@ -554,6 +568,7 @@ void setupServer() {
     });
 
     server.on("/gameGetPlayer", HTTP_GET, [](AsyncWebServerRequest *request){
+        Serial.println(String(player));
         request->send(200, "text/plain", String(player));
     });
 
