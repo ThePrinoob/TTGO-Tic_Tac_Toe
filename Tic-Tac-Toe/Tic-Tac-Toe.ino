@@ -218,8 +218,6 @@ void loop()
                     if (player > 1) {
                         convertToArray(httpGETRequest(serverGameGetPositions));
                         drawAllPlayers();
-                    } else {
-                        return;
                     }
                 }
             }
@@ -446,7 +444,7 @@ void drawAllPlayers() {
     }
     determinePosition();
     checkForWinner(false);
-    checkForDraw();
+    if (!winner) { checkForDraw(); }
     // Display current player
     tft.setCursor(5, 2, 2);
     tft.println("Spieler: " + String(player));
