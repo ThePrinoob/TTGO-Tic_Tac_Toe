@@ -224,6 +224,17 @@ void loop()
                         convertToArray(httpGETRequest(serverGameGetPositions));
                         drawAllPlayers();
                     }
+                    if(WiFi.status() == WL_CONNECTED) {
+                        displayInternetConnectionStatus(true);
+                    } else {
+                        displayInternetConnectionStatus(false);
+                    }
+                } else {
+                    if (WiFi.softAPgetStationNum() == 1) {
+                        displayInternetConnectionStatus(true);
+                    } else {
+                        displayInternetConnectionStatus(false);
+                    }
                 }
             }
 
@@ -615,6 +626,19 @@ void setupClient() {
     Serial.println("");
     Serial.print("Connected to WiFi network with IP Address: ");
     Serial.println(WiFi.localIP());
+}
+
+// Displays if the host and the client are still connected
+// returns void
+void displayInternetConnectionStatus(bool connected) {
+    tft.setTextColor(TFT_BLACK, post_yellow);
+    tft.setTextSize(1);
+    tft.setCursor(5, 225, 2);
+    if (connected) {
+        tft.println("Connected");
+    } else {
+        tft.println("Disconnected");
+    }
 }
 
 // Handles the get requests
