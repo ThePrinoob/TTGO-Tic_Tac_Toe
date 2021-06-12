@@ -98,20 +98,25 @@ void setup(void)
     tft.setSwapBytes(true);
     
     tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(post_yellow, TFT_BLACK);
+    tft.setTextSize(2);
+    tft.setCursor(5, 40, 2);
+
+    tft.println("TicTacToe");
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     
     tft.setTextSize(1);
     
-    tft.setCursor(35, 50, 2);
+    tft.setCursor(35, 100, 2);
     tft.println("Host Game");
 
-    tft.setCursor(35, 100, 2);
+    tft.setCursor(35, 150, 2);
     tft.println("Join Game");
     
-    tft.setCursor(35, 150, 2);
+    tft.setCursor(35, 200, 2);
     tft.println("Local Game");
 
-    tft.setCursor(10, 52, 1);
+    tft.setCursor(10, 102, 1);
     tft.println("->");
 
     startMillis = millis(); //initial start time
@@ -154,8 +159,8 @@ void loop()
             if (arrowPosition < 3)
             {
                 // delete the arrow at the old position and set it at the new position.
-                int position = (52 * 1) * arrowPosition;
-                int newPosition = (52 * 1) * (arrowPosition + 1);
+                int position = 51 + (51 * arrowPosition);
+                int newPosition = 51 + (51 * (arrowPosition + 1));
 
                 tft.setCursor(10, position, 1);
                 tft.println("  ");
@@ -167,9 +172,9 @@ void loop()
             }
             else
             {
-                int position = (52 * 1) * arrowPosition;
+                int position = 51 + (51 * arrowPosition);
                 arrowPosition = 1;
-                int newPosition = (52 * 1) * (arrowPosition);
+                int newPosition = 51 + (51 * arrowPosition);
 
                 tft.setCursor(10, position, 1);
                 tft.println("  ");
