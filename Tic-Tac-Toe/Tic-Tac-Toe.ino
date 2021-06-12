@@ -92,11 +92,27 @@ void setup(void)
     pinMode(0, INPUT);
     pinMode(35, INPUT);
 
-    // Init TFT
+    // Init TFT and screen
     tft.init();
     tft.setRotation(0);
     tft.setSwapBytes(true);
-    initScreen();
+    
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    
+    tft.setTextSize(1);
+    
+    tft.setCursor(35, 50, 2);
+    tft.println("Host Game");
+
+    tft.setCursor(35, 100, 2);
+    tft.println("Join Game");
+    
+    tft.setCursor(35, 150, 2);
+    tft.println("Local Game");
+
+    tft.setCursor(10, 52, 1);
+    tft.println("->");
 
     startMillis = millis(); //initial start time
 }
@@ -108,6 +124,7 @@ void loop()
     {
         if (digitalRead(0) == 0)
         {
+            // execute the game pickt at the arrow position.
             tft.fillScreen(TFT_BLACK);
 
             tft.setCursor(5, 103, 2);
@@ -136,6 +153,7 @@ void loop()
         { // button right
             if (arrowPosition < 3)
             {
+                // delete the arrow at the old position and set it at the new position.
                 int position = (52 * 1) * arrowPosition;
                 int newPosition = (52 * 1) * (arrowPosition + 1);
 
@@ -239,6 +257,8 @@ void loop()
         { // button left
             Serial.println("Left Button");
 
+            drawPlayer();
+
             // set the move of the player
             positionsSet[position] = player;
 
@@ -329,25 +349,6 @@ void loop()
     }
     // Host needs a delay to process the data (strangely)
     delay(5);
-}
-
-void initScreen() {
-    tft.fillScreen(TFT_BLACK);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    
-    tft.setTextSize(1);
-    
-    tft.setCursor(35, 50, 2);
-    tft.println("Host Game");
-
-    tft.setCursor(35, 100, 2);
-    tft.println("Join Game");
-    
-    tft.setCursor(35, 150, 2);
-    tft.println("Local Game");
-
-    tft.setCursor(10, 52, 1);
-    tft.println("->");
 }
 
 // Draws yellow rectangle where the positions is set to 15 (empty)
