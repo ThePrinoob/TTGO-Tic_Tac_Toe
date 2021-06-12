@@ -222,7 +222,7 @@ void loop()
                 }
             }
 
-            if (!isServer && player == 2 || isServer && player == 1) {
+            if (!isServer && player == 2 || isServer && player == 1 || !isOnline) {
                 if (blink == 0)
                 {
                     drawEmptySpace();
