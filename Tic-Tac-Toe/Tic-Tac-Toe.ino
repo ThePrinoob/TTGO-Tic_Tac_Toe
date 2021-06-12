@@ -312,9 +312,7 @@ void loop()
     {
         if (firstRun) {
             tft.setCursor(13, 103, 2);
-
             tft.setTextSize(1);
-
             if (winner == 1)
             {
                 tft.setTextColor(TFT_BLACK, TFT_GREEN);
@@ -336,10 +334,8 @@ void loop()
             firstRun = false;
         }
     }
-    else if (fase == 3)
-    {
-
-    }
+    // Host needs a delay to process the data (strangely)
+    delay(5);
 }
 
 void initScreen() {
