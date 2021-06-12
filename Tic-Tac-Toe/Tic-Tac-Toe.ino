@@ -1,20 +1,12 @@
-// #include <EEPROM.h> // Write Data to storage
 #include <SPI.h>
-#include <TFT_eSPI.h>      // Hardware-specific library
-TFT_eSPI tft = TFT_eSPI(); // Invoke custom library
-#include "esp_wifi.h"
-#include "ESPAsyncWebServer.h"
-#include <HTTPClient.h>
+#include <TFT_eSPI.h>           // Hardware-specific library
+TFT_eSPI tft = TFT_eSPI();      // Invoke custom library
+#include "esp_wifi.h"           // Wifi library - used for two player function
+#include "ESPAsyncWebServer.h"  // Async Webserver Library - used for two player function on host side
+#include <HTTPClient.h>         // Client Library - - used for two player function on client side
 
 // Colors
 #define post_yellow 0xFE60
-#define BLACK 0x0000
-#define BLUE 0x001F
-#define RED 0xF800
-#define GREY 0x8C51
-#define WHITE 0xFFFF
-
-long colors[] = {0xFE60, 0x0000, 0x001F, 0xF800, 0x8C51}; // post_yellow, Black, Blue, Red, Grey
 
 // Scene
 int fase = 0;
@@ -64,19 +56,23 @@ unsigned int score;
 // blinking state of player - 0 hidden, 1 shown
 int blink = 0;
 
-// millis part of blinking player
+// millis part of blinking player and get requests of the client
 unsigned long startMillis;
 unsigned long currentMillis;
-const unsigned long period = 500; //the value is a number of milliseconds used for the blinking player
+const unsigned long period = 500; //the value is a number of milliseconds used for the blinking player and get requests of the client
 
-// int storedColor;
-
+// first run - set to false as soon the function was run once
 bool firstRun = true;
+
+// --------------------------------
+// Online part
+// --------------------------------
 
 // Set your access point network credentials
 const char* ssid = "ESP32-TicTacToe";
 const char* password = "ticTacToe";
 
+// URL's for get and post requests
 const char* serverGameGetPlayer = "http://192.168.4.1/gameGetPlayer";
 const char* serverGameGetPositions = "http://192.168.4.1/gameGetPositions";
 const char* serverGameSetPlayer = "http://192.168.4.1/gamePostPlayer";
@@ -84,17 +80,13 @@ const char* serverGameSetPositions = "http://192.168.4.1/gamePostPositions";
 bool isServer = true;
 bool isOnline = true;
 
+// init AsyncWebServer on Port 80
 AsyncWebServer server(80);
 
 void setup(void)
 {
-    // EEPROM.begin(10);
     // initialize Serial Output
     Serial.begin(115200);
-
-    // storedColor = EEPROM.read(0);
-
-    // Serial.println("Value: " + String(storedColor));
 
     // Set pin mode of the two inbuilt buttons
     pinMode(0, INPUT);
@@ -103,21 +95,10 @@ void setup(void)
     // Init TFT
     tft.init();
     tft.setRotation(0);
-
     tft.setSwapBytes(true);
-
     initScreen();
 
-    // tft.pushImage(0, 0, 135, 240, bootlogo);
-
     startMillis = millis(); //initial start time
-
-    // EEPROM.write(0, storedColor);
-
-    // EEPROM.commit();
-
-    // setupServer();
-
 }
 
 void loop()
@@ -185,6 +166,9 @@ void loop()
     // game screen
     else if (fase == 1 && !winner)
     {
+        /*
+            Fase 1 is the main fase. It manages the whole game and Button clicks.
+        */
         currentMillis = millis(); //get the current "time" (actually the number of milliseconds since the program started)
 
         if(firstRun) {
@@ -192,16 +176,16 @@ void loop()
             tft.fillScreen(post_yellow);
 
             // draw horizontal lines -
-            tft.drawLine(10, 85, 125, 85, BLACK);   // first line
-            tft.drawLine(10, 155, 125, 155, BLACK); // second line
+            tft.drawLine(10, 85, 125, 85, TFT_BLACK);   // first line
+            tft.drawLine(10, 155, 125, 155, TFT_BLACK); // second line
 
             // draw vertical lines |
-            tft.drawLine(45, 30, 45, 210, BLACK); // first line
-            tft.drawLine(90, 30, 90, 210, BLACK); // second line
+            tft.drawLine(45, 30, 45, 210, TFT_BLACK); // first line
+            tft.drawLine(90, 30, 90, 210, TFT_BLACK); // second line
 
             // Set color, text size and print the current player
             // Text color needs BG, else it doesn't display the number correctly.
-            tft.setTextColor(BLACK, post_yellow);
+            tft.setTextColor(TFT_BLACK, post_yellow);
             tft.setTextSize(1);
             tft.setCursor(5, 2, 2);
             tft.println("Spieler: " + String(player));
@@ -209,10 +193,13 @@ void loop()
             delay(1000);
         }
 
+        // millis part - checks every 500ms if its a client and if the enemy has played
+        // Furthermore it lets the Player blink.
         if (currentMillis - startMillis >= period) //test whether the period has elapsed
         {
             if (isOnline) {
                 if (!isServer) {
+                    // Get the current Player and test if it has changed. On change it will get the positions and draws the player.
                     player = httpGETRequest(serverGameGetPlayer).toInt();
                     Serial.println(String(player));
                     if (player > 1) {
@@ -242,6 +229,7 @@ void loop()
         }
 
         if (isOnline) {
+            // Deactivate (goes back to void()) all functions when its not the clients or the Hosts turn.
             if (!isServer && player == 1 || isServer && player == 2) {
                 return;
             }
@@ -251,17 +239,16 @@ void loop()
         { // button left
             Serial.println("Left Button");
 
-            drawPlayer();
-
             // set the move of the player
             positionsSet[position] = player;
 
             checkForWinner(true);
 
-            // check if somebody won
+            // check if somebody won - if nobody won it checks for a draw.
             if (!winner)
             {
                 checkForDraw();
+                // even when its a draw the winner value is set and if its set it doesn't run the following code.
                 if(winner) { return; }
             } else {
                 return;
@@ -283,6 +270,7 @@ void loop()
 
             drawEmptySpace();
 
+            // Send the player and the positions to the host
             if (!isServer && isOnline) {
                 httpPOSTRequest(serverGameSetPlayer, String(player));
                 String tmpPositionsSet = convertToString();
@@ -310,6 +298,10 @@ void loop()
     }
     else if (fase == 2)
     {
+        /*
+            Fase 2 manages the end screen and displays the winner or if its a draw.
+            Reset TTGO to play again!
+        */
         if (firstRun) {
             tft.setCursor(13, 103, 2);
             tft.setTextSize(1);
@@ -331,6 +323,7 @@ void loop()
                 tft.fillScreen(TFT_BLACK);
                 tft.println("DRAW");
             }
+            // should only be run once
             firstRun = false;
         }
     }
@@ -339,8 +332,8 @@ void loop()
 }
 
 void initScreen() {
-    tft.fillScreen(BLACK);
-    tft.setTextColor(WHITE, BLACK);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
     
     tft.setTextSize(1);
     
@@ -357,9 +350,10 @@ void initScreen() {
     tft.println("->");
 }
 
+// Draws yellow rectangle where the positions is set to 15 (empty)
+// return void
 void drawEmptySpace()
 {
-    // draw empty space
     for (int i = 0; i < sizeof(positionsXY) / sizeof(positionsXY[0]); ++i)
     {
         if (positionsSet[i] == 15)
@@ -416,26 +410,28 @@ void drawPlayer()
     if (player == 1)
     {
         Serial.println("player 1");
-        drawX(positionsXY[position][0], positionsXY[position][1], lengthX, BLACK);
+        drawX(positionsXY[position][0], positionsXY[position][1], lengthX, TFT_BLACK);
     }
     else
     {
         Serial.println("player 2");
-        tft.drawCircle(positionsXY[position][0] + 12, positionsXY[position][1] + 10, 14, BLACK);
+        tft.drawCircle(positionsXY[position][0] + 12, positionsXY[position][1] + 10, 14, TFT_BLACK);
     }
 }
 
+// Draws the all player based on the positionsSet (array[int]) variable.
+// returns void
 void drawAllPlayers() {
     drawEmptySpace();
     for (int i = 0; i <= quantity; i++)
     {
         if (positionsSet[i] == 1)
         {
-            drawX(positionsXY[i][0], positionsXY[i][1], lengthX, BLACK);
+            drawX(positionsXY[i][0], positionsXY[i][1], lengthX, TFT_BLACK);
         }
         if (positionsSet[i] == 2)
         {
-            tft.drawCircle(positionsXY[i][0] + 12, positionsXY[i][1] + 10, 14, BLACK);
+            tft.drawCircle(positionsXY[i][0] + 12, positionsXY[i][1] + 10, 14, TFT_BLACK);
         }
     }
     determinePosition();
@@ -446,6 +442,10 @@ void drawAllPlayers() {
     tft.println("Spieler: " + String(player));
 }
 
+// Checks if somebody won based on the positionsSet (array[int]) variable.
+// In addition if winner is set the client sends the player and positionsSet Variable to the host.
+// Parameter:   buttonClicked (bool)
+// returns void
 void checkForWinner(bool buttonClicked) {
     // Check every possible move and set the winner
     score = positionsSet[0] + positionsSet[1] + positionsSet[2];
@@ -475,6 +475,7 @@ void checkForWinner(bool buttonClicked) {
     if (winner) {
         // Change the player for the last time so it can be grabt by the client.
         player = (player == 1) ? 2 : 1;
+        // only send the variables to the host if it was a button click.
         if (!isServer && isOnline && buttonClicked) {
             httpPOSTRequest(serverGameSetPlayer, String(player));
             String tmpPositionsSet = convertToString();
@@ -485,8 +486,9 @@ void checkForWinner(bool buttonClicked) {
     }
 }
 
+// When all moves are made go to next scene and display draw
+// returns void
 void checkForDraw() {
-    // When all moves are made go to next scene and display drawW
     for (int i = 0; i <= quantity; ++i)
     {
         if (positionsSet[i] == 15) { break; }
@@ -505,6 +507,7 @@ void checkForDraw() {
 }
 
 // Draws a X with the given coordinates and color
+// returns void
 void drawX(int x, int y, int l, uint32_t color)
 {
     tft.drawLine(x, y, x + l, y + l, color);
@@ -512,6 +515,7 @@ void drawX(int x, int y, int l, uint32_t color)
 }
 
 // Converts the post Request back to the Array.
+// returns void
 void convertToArray(String tempPositionsSet) {
     int str_len = tempPositionsSet.length() + 1; 
     char char_array[str_len];
@@ -526,6 +530,8 @@ void convertToArray(String tempPositionsSet) {
     }
 }
 
+// Converts the positionsSet array to a string.
+// returns String
 String convertToString() {
     String response = "";
     for (int i = 0; i <= quantity; i++)
@@ -538,6 +544,8 @@ String convertToString() {
     return response;
 }
 
+// Setup the host for managing all request
+// returns void
 void setupServer() {
 
     // Setting the ESP as an access point
@@ -551,10 +559,12 @@ void setupServer() {
 
     tft.println("Waiting for Player..");
 
+    // wait for the client to connect
     while (WiFi.softAPgetStationNum() != 1) {
         delay(100);
     }
 
+    // Configure all get and post requests
     server.on("/gameGetPositions", HTTP_GET, [](AsyncWebServerRequest *request)
     {
         String response = convertToString();
@@ -586,13 +596,17 @@ void setupServer() {
         request->send(200, "text/plain", "OK");
     });
 
+    // start the server
     server.begin();
 }
 
-void setupClient() {    
+// Setup the client to connect to the host
+// returns void
+void setupClient() {
     WiFi.begin(ssid, password);
     Serial.println("Connecting");
     tft.println("Connecting..");
+    // wait for the connection
     while(WiFi.status() != WL_CONNECTED) { 
         delay(100);
         Serial.print(".");
@@ -602,6 +616,8 @@ void setupClient() {
     Serial.println(WiFi.localIP());
 }
 
+// Handles the get requests
+// returns String
 String httpGETRequest(const char* serverName) {
     HTTPClient http;
         
@@ -627,12 +643,16 @@ String httpGETRequest(const char* serverName) {
     return payload;
 }
 
+// Handles the post requests
+// returns String
 String httpPOSTRequest(const char* serverName, String payload) {
     HTTPClient http; 
     
     http.begin(serverName);
+    // needs a content header. If not set the host crashed!
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
+    // prepare the payload and send the post.
     String preparedPayload = "test=" + payload;
     Serial.println(preparedPayload);
     int httpResponseCode = http.POST(preparedPayload);
